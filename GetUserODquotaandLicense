@@ -1,0 +1,40 @@
+#Connect to Msol Service
+Connect-MsolService
+# Connect to SharePoint Online adding the right URL for your tenant
+Connect-SPOService -Url https://xxxxxxxxx-admin.sharepoint.com
+
+# Set the output file path
+$OutputFile = "C:\Temp\OneDriveSizeReport.csv"
+
+# Create a CSV file with headers
+"User Email,OneDrive Size (GB),Storage Quota (GB),License" | Out-File $OutputFile
+
+# Get all users in the tenant
+$Users = Get-MsolUser -All
+
+# Loop through each user
+foreach ($User in $Users) {
+
+    # Get the user's email and OneDrive URL substituting XXXX with the right URL for your tenant
+    $UserEmail = $User.UserPrincipalName
+    $OneDriveUrl = "https://xxxxx-my.sharepoint.com/personal/" + $UserEmail.Replace("@","_").Replace(".","_")
+
+    # Try to get the OneDrive site for the user
+    try {
+        $OneDriveSite = Get-SPOSite -Identity $OneDriveUrl -ErrorAction Stop
+
+        # Get the OneDrive size and quota
+        $OneDriveSize = [math]::Round($OneDriveSite.StorageUsageCurrent / 1024, 2)
+        $OneDriveQuota = [math]::Round($OneDriveSite.StorageQuota / 1024, 2)
+
+        # Get the user's license
+        $UserLicense = $User.Licenses.AccountSkuId
+
+        # Append the data to the CSV file
+        "$($UserEmail),$($OneDriveSize),$($OneDriveQuota),$($UserLicense)" | Out-File $OutputFile -Append
+    }
+    catch {
+        # Write an error message if the OneDrive site does not exist
+        Write-Error "OneDrive site for $UserEmail does not exist"
+    }
+}
