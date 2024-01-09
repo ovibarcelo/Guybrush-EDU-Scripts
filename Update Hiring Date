@@ -1,0 +1,15 @@
+#Make sure you have Microsoft.Graph Module installed. If not remove the comment for the next line
+#Install-Module Microsoft.Graph -Scope AllUsers
+Connect-MgGraph -Scopes "User.ReadWrite.All", "Group.ReadWrite.All"
+Import-Module Microsoft.Graph.Users
+# Define the hire date
+$hireDate = "2020-01-01"
+# Get the users in the group
+$users = Get-MgGroupMember -GroupId e1c31c23-1e89-4b45-ac8b-1a0ca527f9cd
+# Update the hire date for each user
+foreach ($user in $users) {
+    $params = @{
+        EmployeeHireDate = $hireDate
+    }
+    Update-MgUser -UserId $user.Id -BodyParameter $params 
+}
