@@ -38,5 +38,8 @@ foreach ($student in $students) {
 }
 
 # Export the results to a CSV file
-#$results | Export-Csv -Path "C:\Temp\AllStudentsTAP.csv" -NoTypeInformation
-$results | Format-table -AutoSize
+$results | Export-Csv -Path "C:\Temp\AllStudentsTAP.csv" -NoTypeInformation
+
+
+# Or Show the results in a table
+#$results | Format-table -AutoSize
