@@ -1,0 +1,42 @@
+# Check if the Microsoft.Graph.Identity.SignIns module is installed, if not, install it
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Identity.SignIns)) {
+    Install-Module -Name Microsoft.Graph.Identity.SignIns -Force
+}
+#Connect to EntraID
+Connect-MgGraph -Scopes "User.ReadWrite.All", "Group.Read.All" , "UserAuthenticationMethod.ReadWrite.All"
+
+# Ask the user to type the group name
+$groupName = Read-Host -Prompt "Enter the security group name"
+
+# Define the properties for the Temporary Access Pass
+$properties = @{
+    isUsableOnce = $True
+    startDateTime = (Get-Date).AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ssZ")
+}
+$propertiesJSON = $properties | ConvertTo-Json
+
+# Get all users in the specified security group
+$group = Get-MgGroup -Filter "displayName eq '$groupName'"
+$students = Get-MgGroupMember -GroupId $group.Id
+
+# Create a Temporary Access Pass for each user and export the details to a CSV file
+$results = @()
+foreach ($student in $students) {
+    $tap = New-MgUserAuthenticationTemporaryAccessPassMethod -UserId $student.Id -BodyParameter $propertiesJSON
+     $user = Get-MgUser -UserId $student.Id
+    $results += [pscustomobject]@{
+        UserId                = $student.Id
+        UserPrincipalName = $user.UserPrincipalName
+        CreatedDateTime       = $tap.CreatedDateTime
+        IsUsable              = $tap.IsUsable
+        IsUsableOnce          = $tap.IsUsableOnce
+        LifetimeInMinutes     = $tap.LifetimeInMinutes
+        MethodUsabilityReason = $tap.MethodUsabilityReason
+        StartDateTime         = $tap.StartDateTime
+        TemporaryAccessPass   = $tap.TemporaryAccessPass
+    }
+}
+
+# Export the results to a CSV file
+#$results | Export-Csv -Path "C:\Temp\AllStudentsTAP.csv" -NoTypeInformation
+$results | Format-table -AutoSize
